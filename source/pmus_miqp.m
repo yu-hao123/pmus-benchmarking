@@ -1,12 +1,12 @@
 function [waveforms_true, waveforms_hat, params_true, params_hat,...
     solver_time, switching_times] = pmus_miqp(waveforms, initial_delay,...
     l2_reg, delay_length, epsilon)
-% PMUS_MIQP Estimates the Pmus waveform and the respiratory dynamics' 
-% parameters (resistance and elastance) by employing a mixed-integer 
+% PMUS_MIQP Estimates the Pmus waveform and the respiratory dynamics'
+% parameters (resistance and elastance) by employing a mixed-integer
 % quadratic programming formulation.
 % Input:
 %   filename - name of the binary file from the simulator.
-%   initial_delay - if an initial delay should be considered before the 
+%   initial_delay - if an initial delay should be considered before the
 %                   respiratory effort begins. Defaults to false.
 %   l2_reg - if L2 regularization should be used. Defaluts to false.
 %   delay_length - the length of the delay before the respiratory effort
@@ -43,16 +43,16 @@ end
 
 %% Loading waveforms
 % filename = 'samplefile015.bin';
-%[flow, volume, pao, pmus_true, insex] =  load_python_bin(filename);
+%[flow, volume, pao, pmus_true, insexp] =  load_python_bin(filename);
 
 flow = waveforms.flow;
 volume = waveforms.volume;
 pao = waveforms.pressure;
 pmus_true = waveforms.pmus;
-insex = waveforms.insex;
+insexp = waveforms.insexp;
 
 % k_soe stands for the index where the start of exhalation occurs
-k_soe = find(diff(insex) <= -0.5);
+k_soe = find(diff(insexp) <= -0.5);
 k_soe = k_soe(1) + 1; % since we lose 1 index by using diff
 padding = zeros(delay_length, 1);
 if initial_delay
@@ -60,7 +60,7 @@ if initial_delay
     volume = [padding; volume];
     pao = [padding; pao];
     pmus_true = [padding; pmus_true];
-    insex = [padding; insex];
+    insex = [padding; insexp];
     k_soe = k_soe + delay_length; % to take into account the padding
 end
 
@@ -122,7 +122,7 @@ elastance = sdpvar(1, 1);
 
 cost = (pao - (pmus + resistance * flow + volume * elastance))' * ...
 	   (pao - (pmus + resistance * flow + volume * elastance));
-       
+
 if l2_reg
     cost = cost + 1.0e-3 * (pmus' * pmus);
 end
@@ -130,7 +130,7 @@ end
 %% Constraining the real-valued variables
 
 constraint_real = [ones(N,1)*(-20) <= pmus <= ones(N,1)*1, ...
-    0 <= resistance, resistance <= 0.1, 0.005 <= elastance, elastance <= 1];       
+    0 <= resistance, resistance <= 0.1, 0.005 <= elastance, elastance <= 1];
 
 %% Solving the optimization problem
 
@@ -146,7 +146,7 @@ waveforms_true.flow = flow;
 waveforms_true.volume = volume;
 waveforms_true.pao = pao;
 waveforms_true.pmus = pmus_true;
-waveforms_true.insex = insex;
+waveforms_true.insexp = insexp;
 
 waveforms_hat.pmus = value(pmus);
 waveforms_hat.pao = waveforms_hat.pmus + value(resistance) * flow + volume * value(elastance);
