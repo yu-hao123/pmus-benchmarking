@@ -65,14 +65,6 @@ hold on; grid on;
 switch options.LastPlot
     case "pmus"
         plot(time, pmus, 'k', 'HandleVisibility', 'on');
-        if ~isempty(pmus_exp_marks) && ~isempty(pmus_ins_marks)
-            for i=1:length(pmus_ins_marks)
-                plot(time(pmus_ins_marks(i)), pmus(pmus_ins_marks(i)), "r^", 'MarkerFaceColor','red', 'HandleVisibility', 'off');
-            end
-            for i=1:length(pmus_exp_marks)
-                plot(time(pmus_exp_marks(i)), pmus(pmus_exp_marks(i)), "bv", 'MarkerFaceColor','blue', 'HandleVisibility', 'off');
-            end
-        end
         ylabel('$P_{mus}$ $[cmH_{2}O]$','Interpreter','latex');
     case "vol"
         plot(time, volume, 'k', 'HandleVisibility', 'on');
@@ -95,5 +87,5 @@ linkaxes(link_plot, 'x');
 t.Padding = 'compact';
 t.TileSpacing = 'compact';
 
-align_Ylabels(f);
+%align_Ylabels(f);
 end
