@@ -133,10 +133,23 @@ constraint_real = [ones(N,1)*(-20) <= pmus <= ones(N,1)*1, ...
     0 <= resistance, resistance <= 0.1, 0.005 <= elastance, elastance <= 1];
 
 %% Solving the optimization problem
+disp('--- DEBUG: Setting up solver options...');
+max_time = 1500;
+options = sdpsettings('solver', 'gurobi', ...
+                      'gurobi.TimeLimit', max_time, ...
+                      'gurobi.TuneTimeLimit', 0, ...
+                      'verbose', 2);
 
-options = sdpsettings;
+disp('--- DEBUG: All constraints and options are set.');
+
 solution = optimize([constraint_occur, constraint_unique, constraint_regions, constraint_real, constraint_exhalation],...
     cost, options);
+
+disp('The raw solution object from YALMIP:');
+disp(solution);
+
+solver_status_message = yalmiperror(solution.problem);
+disp(['Solver Status: ' solver_status_message]);
 
 %% Collecting outputs
 
