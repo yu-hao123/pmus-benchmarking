@@ -60,12 +60,12 @@ if initial_delay
     volume = [padding; volume];
     pao = [padding; pao];
     pmus_true = [padding; pmus_true];
-    insex = [padding; insexp];
+    insexp = [padding; insexp];
     k_soe = k_soe + delay_length; % to take into account the padding
 end
 
 % Converting units of airflow
-flow = flow / 60 * 1000;
+flow = flow / 60 * 1000; % from L/min to mL/s
 
 N = length(flow); % number of samples
 if initial_delay
@@ -117,8 +117,8 @@ constraint_exhalation = [(1:N) * tik(1:N, end) <= k_soe + tau_soe];
 
 %% Cost function definition
 
-resistance = sdpvar(1, 1);
-elastance = sdpvar(1, 1);
+resistance = sdpvar(1, 1); % cmH2O / (mL * s) (usual unit is cmH2O / (L * s))
+elastance = sdpvar(1, 1); % cmH2O / mL
 
 cost = (pao - (pmus + resistance * flow + volume * elastance))' * ...
 	   (pao - (pmus + resistance * flow + volume * elastance));
@@ -131,6 +131,7 @@ end
 
 constraint_real = [ones(N,1)*(-20) <= pmus <= ones(N,1)*1, ...
     0 <= resistance, resistance <= 0.1, 0.005 <= elastance, elastance <= 1];
+    %0 <= resistance, resistance <= 0.1, 0.025 <= elastance, elastance <= 0.05];
 
 %% Solving the optimization problem
 disp('--- DEBUG: Setting up solver options...');

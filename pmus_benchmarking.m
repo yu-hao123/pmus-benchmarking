@@ -21,18 +21,22 @@ pmus_estimate = acq_table.pmus_estimate; % PMUS-MAG
 [ins_marks, exp_marks] = retrieve_parity_marks(volume * 10);
 fprintf("retrieved %d ins/exp marks from volume parity bit\n", length(ins_marks));
 %%
-offset = 50;
-idx1 = 8000;
-idx2 = 8001;
+offset = 60;
+idx1 = 9000;
+idx2 = 9001;
 interval = (ins_marks(idx1)-offset):(ins_marks(idx2));
 interval_table = acq_table(interval, :);
+interval_table.pmus = interval_table.pmus;
+interval_table.flow = fir_filter(8, 0.2, 100, interval_table.flow);
+interval_table.pressure = fir_filter(8, 0.2, 100, interval_table.pressure);
 
 plot_dataset(interval_table);
 
 exp_start = exp_marks(idx1) - ins_marks(idx1) + offset;
 
+peep = 5;
 waveforms = table();
-waveforms.pressure = interval_table.pressure;
+waveforms.pressure = interval_table.pressure - peep;
 waveforms.flow = interval_table.flow;
 waveforms.volume = interval_table.volume;
 waveforms.pmus = interval_table.pmus;
@@ -43,17 +47,28 @@ for i=1:length(waveforms.pressure)
         insexp(i) = 0;
     end
 end
+
 %%
 waveforms.insexp = insexp;
-[waveforms_true, waveforms_hat, params_true, params_hat] = pmus_miqp(waveforms, true, false, 0);
+[waveforms_true, waveforms_hat, params_true, params_hat] = pmus_miqp(waveforms, false, true, 0);
 
 pmus_estimate_miqp =  waveforms_hat.pmus;
 pmus_true_miqp = waveforms_true.pmus;
 
-%%
+%% plot
 [f, t, linkplot] = plot_dataset(interval_table);
 
 plot(linkplot(3), interval_table.time - interval_table.time(1), pmus_estimate_miqp);
 plot(linkplot(3), interval_table.time - interval_table.time(1), waveforms.insexp);
-legend('pmus ASL', 'pmus MIQP', 'insexp')
 
+resistance = params_true.resistance; % cmH2O / (L * s)
+compliance = 1000 / params_true.elastance; % cmH2O / mL
+pmus_recalculated = waveforms.pressure ...
+    - resistance / 60 * waveforms.flow ...
+    - waveforms.volume / (compliance);
+plot(linkplot(3), interval_table.time - interval_table.time(1), pmus_recalculated);
+
+legend('pmus ASL', 'pmus MIQP', 'insexp', 'pmus recalculated');
+
+params_true
+params_hat
