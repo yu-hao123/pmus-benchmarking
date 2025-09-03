@@ -43,11 +43,11 @@ end
 
 %% Loading waveforms
 % filename = 'samplefile015.bin';
-%[flow, volume, pao, pmus_true, insexp] =  load_python_bin(filename);
+%[flow, volume, paw, pmus_true, insexp] =  load_python_bin(filename);
 
 flow = waveforms.flow;
 volume = waveforms.volume;
-pao = waveforms.pressure;
+paw = waveforms.paw;
 pmus_true = waveforms.pmus;
 insexp = waveforms.insexp;
 
@@ -58,7 +58,7 @@ padding = zeros(delay_length, 1);
 if initial_delay
     flow = [padding; flow];
     volume = [padding; volume];
-    pao = [padding; pao];
+    paw = [padding; paw];
     pmus_true = [padding; pmus_true];
     insexp = [padding; insexp];
     k_soe = k_soe + delay_length; % to take into account the padding
@@ -120,8 +120,8 @@ constraint_exhalation = [(1:N) * tik(1:N, end) <= k_soe + tau_soe];
 resistance = sdpvar(1, 1); % cmH2O / (mL * s) (usual unit is cmH2O / (L * s))
 elastance = sdpvar(1, 1); % cmH2O / mL
 
-cost = (pao - (pmus + resistance * flow + volume * elastance))' * ...
-	   (pao - (pmus + resistance * flow + volume * elastance));
+cost = (paw - (pmus + resistance * flow + volume * elastance))' * ...
+	   (paw - (pmus + resistance * flow + volume * elastance));
 
 if l2_reg
     cost = cost + 1.0e-3 * (pmus' * pmus);
@@ -131,10 +131,8 @@ end
 
 constraint_real = [ones(N,1)*(-20) <= pmus <= ones(N,1)*1, ...
     0 <= resistance, resistance <= 0.1, 0.005 <= elastance, elastance <= 1];
-    %0 <= resistance, resistance <= 0.1, 0.025 <= elastance, elastance <= 0.05];
 
 %% Solving the optimization problem
-disp('--- DEBUG: Setting up solver options...');
 max_time = 1500;
 options = sdpsettings('solver', 'gurobi', ...
                       'gurobi.TimeLimit', max_time, ...
@@ -146,11 +144,11 @@ disp('--- DEBUG: All constraints and options are set.');
 solution = optimize([constraint_occur, constraint_unique, constraint_regions, constraint_real, constraint_exhalation],...
     cost, options);
 
-disp('The raw solution object from YALMIP:');
-disp(solution);
+%disp('The raw solution object from YALMIP:');
+%disp(solution);
 
-solver_status_message = yalmiperror(solution.problem);
-disp(['Solver Status: ' solver_status_message]);
+%solver_status_message = yalmiperror(solution.problem);
+%disp(['Solver Status: ' solver_status_message]);
 
 %% Collecting outputs
 
@@ -158,14 +156,14 @@ solver_time = solution.solvertime;
 
 waveforms_true.flow = flow;
 waveforms_true.volume = volume;
-waveforms_true.pao = pao;
+waveforms_true.paw = paw;
 waveforms_true.pmus = pmus_true;
 waveforms_true.insexp = insexp;
 
 waveforms_hat.pmus = value(pmus);
-waveforms_hat.pao = waveforms_hat.pmus + value(resistance) * flow + volume * value(elastance);
+waveforms_hat.paw = waveforms_hat.pmus + value(resistance) * flow + volume * value(elastance);
 
-params_lse = (([flow volume]' * [flow volume]) \ ([flow volume]')) * (pao - pmus_true);
+params_lse = (([flow volume]' * [flow volume]) \ ([flow volume]')) * (paw - pmus_true);
 params_true.resistance = params_lse(1) * 1000;
 params_true.elastance = params_lse(2) * 1000;
 
