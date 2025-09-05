@@ -25,7 +25,7 @@ offset = 60;
 idx1 = 9000;
 idx2 = 9001;
 
-interval = (ins_marks(idx1)-offset):(ins_marks(idx2));
+interval = (ins_marks(idx1)-offset):(ins_marks(idx2)-offset);
 interval_table = acq_table(interval, :);
 interval_table.pmus = interval_table.pmus;
 interval_table.flow = fir_filter(8, 0.2, 100, interval_table.flow);
@@ -42,6 +42,7 @@ waveforms.paw = interval_table.pressure - peep;
 waveforms.flow = interval_table.flow;
 waveforms.volume = interval_table.volume;
 waveforms.pmus = interval_table.pmus;
+waveforms.pmus_mag = interval_table.pmus_estimate;
 insexp = ones(length(waveforms.paw), 1);
 for i=1:length(waveforms.paw)
     if i >= exp_start
@@ -75,14 +76,20 @@ plot(linkplot(1), interval_table.time - interval_table.time(1), paw_est + peep);
 legend(linkplot(1), 'paw ASL', 'paw MIQP est');
 
 plot(linkplot(3), interval_table.time - interval_table.time(1), pmus_recalculated);
+plot(linkplot(3), interval_table.time - interval_table.time(1), waveforms.pmus_mag);
 plot(linkplot(3), interval_table.time - interval_table.time(1), waveforms.insexp);
-legend('pmus ASL', 'pmus MIQP', 'pmus LS recalculated');
+legend('pmus ASL', 'pmus MIQP', 'pmus LS recalculated', 'pmus MAG', 'expiration switch');
 
-disp(params_true);
-disp(params_hat);
+fprintf("true parameters - \n");
+fprintf("    resistance: %.2f \n", params_true.resistance);
+fprintf("    compliance: %.2f \n", 1000 / params_true.elastance);
+
+fprintf("estimated parameters - \n");
+fprintf("    resistance: %.2f \n", params_hat.resistance);
+fprintf("    compliance: %.2f \n", 1000 / params_hat.elastance);
 
 cost_hat = cost(params_hat.resistance / 1000, params_hat.elastance / 1000, ...
-    waveforms.paw, waveforms.flow, waveforms.volume, waveforms_hat.pmus)
+    waveforms.paw, waveforms.flow, waveforms.volume, waveforms_hat.pmus);
 
 % considering PEEP = 0
 % expects resistance in cmH2O / (mL * s) and elastance in cmH2O / mL
