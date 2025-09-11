@@ -23,18 +23,50 @@ fprintf("retrieved %d ins/exp marks from volume parity bit\n", length(ins_marks)
 
 %%
 offset = 50;
-idx1 = 9000;
-idx2 = 9001;
+start_idx = 15171;
+finish_idx = 15176;
 peep = 5;
-waveforms = extract_cycle(acq_table, ins_marks(idx1), ins_marks(idx1 + 1), exp_marks(idx1), peep);
-plot_dataset(acq_table(ins_marks(idx1) - offset:ins_marks(idx2) - offset, :));
+plot_dataset(acq_table(ins_marks(start_idx)-offset:ins_marks(finish_idx+1)-offset, :));
 
 %% pmus miqp estimation
-[waveforms_true, waveforms_hat, params_true, params_hat] = pmus_miqp(waveforms, false, true, 0);
+waveforms = table();
+waveforms_hat = table();
+params_true = table();
+params_hat = table();
+cost_hat = [];
+% estimate multiple sequential cycles
+for i=start_idx:finish_idx
+    fprintf(" optimizing cycle of idx: %d \n", i);
+
+    cycle = extract_cycle(acq_table, ins_marks(i), ins_marks(i + 1), exp_marks(i), peep);
+    [cycle_true, cycle_hat, cycle_params_true, cycle_params_hat] = pmus_miqp(cycle, false, true, 0);
+    cycle_cost_hat = cost(cycle_params_hat.resistance / 1000, cycle_params_hat.elastance / 1000, ...
+        cycle.paw, cycle.flow, cycle.volume, cycle_hat.pmus);
+
+    cost_hat = [cost_hat; cycle_cost_hat];
+
+    resistance = cycle_params_true.resistance; % cmH2O / (L * s)
+    compliance = 1000 / cycle_params_true.elastance; % cmH2O / mL
+    pmus_recalculated = cycle.paw - resistance / 60 * cycle.flow - cycle.volume / (compliance);
+    cycle.pmus_recalculated = pmus_recalculated;
+
+    if (i == start_idx)
+        waveforms = cycle;
+        waveforms_hat = cycle_hat;
+        params_true = cycle_params_true;
+        params_hat = cycle_params_hat;
+    else
+        waveforms = [waveforms; cycle];
+        waveforms_hat = [waveforms_hat; cycle_hat];
+        params_true = [params_true; cycle_params_true];
+        params_hat = [params_hat; cycle_params_hat];
+    end
+
+end
+
 
 paw_est = waveforms_hat.paw;
 pmus_optimized =  waveforms_hat.pmus;
-pmus_true_miqp = waveforms_true.pmus;
 
 %% pmus cubic estimation
 
@@ -42,32 +74,27 @@ pmus_true_miqp = waveforms_true.pmus;
 %pmus_optimized = waveforms_hat.pmus;
 %paw_est = waveforms_hat.paw;
 
-%% plot
+%% plot and display selected R, C parameters
 [f, t, linkplot] = plot_dataset(waveforms);
 
 plot(linkplot(3), waveforms.time - waveforms.time(1), pmus_optimized);
-
-resistance = params_true.resistance; % cmH2O / (L * s)
-compliance = 1000 / params_true.elastance; % cmH2O / mL
-pmus_recalculated = waveforms.paw - resistance / 60 * waveforms.flow - waveforms.volume / (compliance);
 plot(linkplot(1), waveforms.time - waveforms.time(1), paw_est);
 legend(linkplot(1), 'paw ASL', 'paw MIQP est');
 
-plot(linkplot(3), waveforms.time - waveforms.time(1), pmus_recalculated);
+plot(linkplot(3), waveforms.time - waveforms.time(1), waveforms.pmus_recalculated);
 plot(linkplot(3), waveforms.time - waveforms.time(1), waveforms.pmus_mag);
 plot(linkplot(3), waveforms.time - waveforms.time(1), waveforms.insexp);
 legend('pmus ASL', 'pmus MIQP', 'pmus LS recalculated', 'pmus MAG', 'expiration switch');
 
+cidx = 3;
 fprintf("true parameters - \n");
-fprintf("    resistance: %.2f \n", params_true.resistance);
-fprintf("    compliance: %.2f \n", 1000 / params_true.elastance);
+fprintf("    resistance: %.2f \n", params_true(cidx).resistance);
+fprintf("    compliance: %.2f \n", 1000 / params_true(cidx).elastance);
 
 fprintf("estimated parameters - \n");
-fprintf("    resistance: %.2f \n", params_hat.resistance);
-fprintf("    compliance: %.2f \n", 1000 / params_hat.elastance);
+fprintf("    resistance: %.2f \n", params_hat(cidx).resistance);
+fprintf("    compliance: %.2f \n", 1000 / params_hat(cidx).elastance);
 
-cost_hat = cost(params_hat.resistance / 1000, params_hat.elastance / 1000, ...
-    waveforms.paw, waveforms.flow, waveforms.volume, waveforms_hat.pmus);
 
 % considering PEEP = 0
 % expects resistance in cmH2O / (mL * s) and elastance in cmH2O / mL
@@ -88,7 +115,7 @@ arguments
     offset = 50
 end
 
-interval = (ins_mark-offset):(next_ins_mark-offset);
+interval = (ins_mark-offset):(next_ins_mark-offset-1);
 interval_table = acq_table(interval, :);
 interval_table.pmus = interval_table.pmus;
 interval_table.flow = fir_filter(8, 0.2, 100, interval_table.flow);

@@ -131,15 +131,14 @@ end
 
 constraint_real = [ones(N,1)*(-20) <= pmus <= ones(N,1)*1, ...
     0 <= resistance, resistance <= 0.1, 0.005 <= elastance, elastance <= 1];
+    %0 <= resistance, resistance <= 0.1, 0.028 <= elastance, elastance <= 1];
 
 %% Solving the optimization problem
 max_time = 1500;
 options = sdpsettings('solver', 'gurobi', ...
                       'gurobi.TimeLimit', max_time, ...
                       'gurobi.TuneTimeLimit', 0, ...
-                      'verbose', 2);
-
-disp('--- DEBUG: All constraints and options are set.');
+                      'verbose', 0);
 
 solution = optimize([constraint_occur, constraint_unique, constraint_regions, constraint_real, constraint_exhalation],...
     cost, options);
@@ -160,6 +159,7 @@ waveforms_true.paw = paw;
 waveforms_true.pmus = pmus_true;
 waveforms_true.insexp = insexp;
 
+waveforms_hat = table();
 waveforms_hat.pmus = value(pmus);
 waveforms_hat.paw = waveforms_hat.pmus + value(resistance) * flow + volume * value(elastance);
 
