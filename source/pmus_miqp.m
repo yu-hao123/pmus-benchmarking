@@ -8,7 +8,7 @@ function [waveforms_true, waveforms_hat, params_true, params_hat,...
 %   filename - name of the binary file from the simulator.
 %   initial_delay - if an initial delay should be considered before the
 %                   respiratory effort begins. Defaults to false.
-%   l2_reg - if L2 regularization should be used. Defaluts to false.
+%   l2_reg - if L2 regularization should be used. Defaults to false.
 %   delay_length - the length of the delay before the respiratory effort
 %                  begins.
 % Output:
@@ -112,7 +112,7 @@ end
 
 %% Constraining the exhalation switching instant
 
-tau_soe = 25;
+tau_soe = 50;
 constraint_exhalation = [(1:N) * tik(1:N, end) <= k_soe + tau_soe];
 
 %% Cost function definition
@@ -131,10 +131,10 @@ end
 
 constraint_real = [ones(N,1)*(-20) <= pmus <= ones(N,1)*1, ...
     0 <= resistance, resistance <= 0.1, 0.005 <= elastance, elastance <= 1];
-    %0 <= resistance, resistance <= 0.1, 0.028 <= elastance, elastance <= 1];
+    %0 <= resistance, resistance <= 0.1, 0.030 <= elastance, elastance <= 1];
 
 %% Solving the optimization problem
-max_time = 1500;
+max_time = 1200;
 options = sdpsettings('solver', 'gurobi', ...
                       'gurobi.TimeLimit', max_time, ...
                       'gurobi.TuneTimeLimit', 0, ...
