@@ -16,7 +16,7 @@ function [waveforms_true, waveforms_hat, params_true, params_hat, solinfo] = ...
 if nargin < 5, opts = struct(); end
 if ~isfield(opts,'R_bounds'),   opts.R_bounds = [0 0.1]; end
 if ~isfield(opts,'E_bounds'),   opts.E_bounds = [0.005 0.1]; end
-if ~isfield(opts,'pmus_bounds'),opts.pmus_bounds = [-50 0]; end
+if ~isfield(opts,'pmus_bounds'),opts.pmus_bounds = [-50 1]; end
 if ~isfield(opts,'solver'),     opts.solver = 'quadprog'; end
 
 t = waveforms.time;
@@ -69,9 +69,9 @@ constraints = [constraints, a0 + a1 + a2 + a3 == 0];
 % p''(t0) -> a2 > 0
 % p'''(t0) -> a3 < 0
 % small numeric margins to avoid strict inequalities
-constraints = [constraints, a1 <= -1e-8];
-constraints = [constraints, a2 >= 1e-8];
-constraints = [constraints, a3 <= -1e-8];
+constraints = [constraints, a1 <= -1e-6];
+constraints = [constraints, a2 >= 1e-6];
+constraints = [constraints, a3 <= -1e-6];
 
 constraints = [constraints, opts.R_bounds(1) <= R <= opts.R_bounds(2)];
 constraints = [constraints, opts.E_bounds(1) <= E <= opts.E_bounds(2)];
@@ -86,9 +86,9 @@ res = paw - paw_model;
 objective = res' * res;
 
 if strcmpi(opts.solver,'gurobi')
-    options = sdpsettings('solver','gurobi','verbose',1);
+    options = sdpsettings('solver','gurobi', 'gurobi.OutputFlag', 0);
 else
-    options = sdpsettings('solver','quadprog','verbose',1);
+    options = sdpsettings('solver','quadprog','verbose', 0);
 end
 diagn = optimize(constraints, objective, options);
 
