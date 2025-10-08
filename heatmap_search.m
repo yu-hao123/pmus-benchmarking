@@ -46,22 +46,51 @@ waveforms.insexp = insexp;
 plot_dataset(interval_table);
 
 %% Grid search for R and C
+if isempty(gcp("nocreate"))
+    parpool(8);
+end
 
 R_values = linspace(5, 50, 8); % Resistance [(cmH20.s) / mL]
 C_values = linspace(10, 80, 8); % Compliance [ml / cmH20]
-
 error_matrix = nan(length(C_values), length(R_values));
 
-for iC = 1:length(C_values)
-    for iR = 1:length(R_values)
-        fprintf("Current index: %d\n", (iR) + (iC - 1) * length(R_values));
+% Setup progress tracking
+dq = parallel.pool.DataQueue;
+N_total = length(R_values) * length(C_values);
 
-        [~, waveforms_hat, ~, ~, ~, ~] = pmus_miqp_fixed(...
-            waveforms, false, true, 0, 1e-3, R_values(iR)/1000, 1/C_values(iC));
-        error_matrix(iC, iR) = norm(waveforms.paw - waveforms_hat.paw);
+afterEach(dq, @(~)updateProgress(N_total));
+    function updateProgress(N_total)
+        persistent progress
+        if isempty(progress)
+            progress = 0;
+        end
+        progress = progress + 1;
+        fprintf("Progress: %d / %d (%.1f%%) \n", progress, N_total, 100 * progress/N_total);
     end
-end
 
+% Parallel Loop
+parfor iR = 1:length(R_values)
+    R = R_values(iR);
+    temp_error_col = nan(length(C_values), 1);
+
+    for iC = 1:length(C_values)
+        C = C_values(iC);
+
+        [~, waveforms_hat, ~, ~, ~, ~] = pmus_miqp_fixed(waveforms, false, true, 0, 1e-3, R/1000, 1/C);
+        if isempty(waveforms_hat)
+            send(dq, 1);
+            continue;
+        end
+
+        err = norm(waveforms.paw - waveforms_hat.paw);
+        temp_error_col(iC) = err;
+
+        % update progress
+        send(dq, 1);
+    end
+
+    error_matrix(:, iR) = temp_error_col;
+end
 %%
 [best_error, linear_idx] = min(error_matrix(:));
 [best_iC, best_iR] = ind2sub(size(error_matrix), linear_idx);
