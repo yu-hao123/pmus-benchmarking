@@ -10,6 +10,12 @@ addpath('source');
 load("data/ASL_spont_01.mat");
 set(0, 'DefaultLineLineWidth', 0.8);
 
+%% define estimator
+estimator = "cubic"; % miqp or cubic
+cubic_k0 = 35;
+cubic_km = 130;
+heatmap_dim = 48;
+
 %% Prepare waveforms
 time = acq_table.time;
 pressure = acq_table.pressure;
@@ -50,8 +56,8 @@ if isempty(gcp("nocreate"))
     parpool(8);
 end
 
-R_values = linspace(5, 50, 8); % Resistance [(cmH20.s) / mL]
-C_values = linspace(10, 80, 8); % Compliance [ml / cmH20]
+R_values = linspace(5, 50, heatmap_dim); % Resistance [(cmH20.s) / mL]
+C_values = linspace(10, 80, heatmap_dim); % Compliance [ml / cmH20]
 error_matrix = nan(length(C_values), length(R_values));
 
 % Setup progress tracking
@@ -68,15 +74,19 @@ afterEach(dq, @(~)updateProgress(N_total));
         fprintf("Progress: %d / %d (%.1f%%) \n", progress, N_total, 100 * progress/N_total);
     end
 
-% Parallel Loop
+fprintf("initiating parallel estimation method: " + estimator + "\n");
 parfor iR = 1:length(R_values)
     R = R_values(iR);
     temp_error_col = nan(length(C_values), 1);
 
     for iC = 1:length(C_values)
         C = C_values(iC);
+        if (estimator == "miqp")
+            [~, waveforms_hat, ~, ~, ~, ~] = pmus_miqp_fixed(waveforms, false, true, 0, 1e-3, R/1000, 1/C);
+        else
+            [~, waveforms_hat, ~, ~, ~, ~] = pmus_cubic_fixed(waveforms, cubic_k0, cubic_km, R/1000, 1/C);
+        end
 
-        [~, waveforms_hat, ~, ~, ~, ~] = pmus_miqp_fixed(waveforms, false, true, 0, 1e-3, R/1000, 1/C);
         if isempty(waveforms_hat)
             send(dq, 1);
             continue;
@@ -108,9 +118,13 @@ set(gca, 'YDir', 'normal');
 colorbar;
 xlabel('Resistance R (cmH2O.s)/mL');
 ylabel("Compliance C (mL/cmH2O)");
-title("Log10 (residual cost) surface");
+title(estimator + " Log10 (residual cost) surface");
 
-[~, waveforms_hat, params_true, params_hat, ~, ~] = pmus_miqp_fixed(waveforms, false, true, 0, 1e-3, best_R/1000, 1/best_C);
+if (estimator == "miqp")
+    [~, waveforms_hat, params_true, params_hat, ~, ~] = pmus_miqp_fixed(waveforms, false, true, 0, 1e-3, best_R/1000, 1/best_C);
+else
+    [~, waveforms_hat, params_true, params_hat, ~, ~] = pmus_cubic_fixed(waveforms, cubic_k0, cubic_km, best_R/1000, 1/best_C);
+end
 
 fprintf("params true - R = %.2f, C = %.2f\n", params_true.resistance, 1000/params_true.elastance);
 fprintf("cost (R = %.2f, C = %.2f) : %.2f \n", best_R, best_C, norm(waveforms_hat.paw - waveforms.paw));
@@ -128,3 +142,4 @@ plot(linkplot(3), waveforms.time - waveforms.time(1), pmus_optimized);
 plot(linkplot(1), waveforms.time - waveforms.time(1), paw_est);
 legend(linkplot(1), "paw ASL", "paw est");
 legend(linkplot(3), "pmus ASL", "pmus est");
+sgtitle("best estimation (" + estimator + ")");
