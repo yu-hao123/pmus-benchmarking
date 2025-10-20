@@ -57,8 +57,7 @@ tik = binvar(N, Ns);
 
 constraint_occur = [];
 for i=2:Ns
-    constraint_occur = [constraint_occur, ...
-        (1:N)*tik(:,i-1) <= (1:N)*tik(:,i)];
+    constraint_occur = [constraint_occur, (1:N)*tik(:,i-1) <= (1:N)*tik(:,i)];
 end
 
 constraint_unique = [];
@@ -98,7 +97,7 @@ if l2_reg
     cost = cost + 1.0e-3 * (pmus' * pmus);
 end
 
-constraint_real = [ones(N,1)*(-20) <= pmus <= ones(N,1)*1];
+constraint_real = [ones(N,1)*(-20) <= pmus, pmus <= ones(N,1)*1];
 options = sdpsettings('solver','gurobi', ...
                       'gurobi.TimeLimit', 60, ...
                       'gurobi.TuneTimeLimit', 0, ...

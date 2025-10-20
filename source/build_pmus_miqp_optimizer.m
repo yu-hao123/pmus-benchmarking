@@ -12,7 +12,6 @@ if nargin < 5, epsilon = 1e-3; end
 flow = waveforms.flow;
 volume = waveforms.volume;
 paw = waveforms.paw;
-pmus_true = waveforms.pmus;
 insexp = waveforms.insexp;
 
 % Start of exhalation
@@ -22,8 +21,6 @@ if initial_delay
     flow = [padding; flow];
     volume = [padding; volume];
     paw = [padding; paw];
-    pmus_true = [padding; pmus_true];
-    insexp = [padding; insexp];
     k_soe = k_soe + delay_length;
 end
 
@@ -87,7 +84,7 @@ if l2_reg
 end
 
 %% pmus bounds
-constraint_real = [ones(N,1)*(-20) <= pmus <= ones(N,1)*1.0];
+constraint_real = [ones(N,1)*(-20) <= pmus, pmus <= ones(N,1)*1.0];
 constraints = [constraint_occur, constraint_unique, ...
                 constraint_regions, constraint_real, ...
                 constraint_exhalation];

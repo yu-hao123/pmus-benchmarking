@@ -78,15 +78,13 @@ tik = binvar(N, Ns); % binary variables related to the switching instants
 %% Constraining later switching times to occur after the earlier ones
 constraint_occur = []; % t1 <= t2 <= ... <= tM
 for i=2:1:Ns
-	constraint_occur = constraint_occur +...
-        [(1:N)* tik(1:end, i-1) <= (1:N)* tik(1:end, i)];
+	constraint_occur = [constraint_occur, (1:N)* tik(1:end, i-1) <= (1:N)* tik(1:end, i)];
 end
 
 %% Constraining the switching instants to occur only once
 constraint_unique = []; % only one '1' in t1, t2, ..., tM
 for i=1:1:Ns
-	constraint_unique = constraint_unique +...
-        [sum(tik(1:end, i)) == 1];
+	constraint_unique = [constraint_unique, sum(tik(1:end, i)) == 1];
 end
 
 %% Constraints to define the regions
@@ -113,7 +111,7 @@ end
 %% Constraining the exhalation switching instant
 
 tau_soe = 50;
-constraint_exhalation = [(1:N) * tik(1:N, end) <= k_soe + tau_soe];
+constraint_exhalation = (1:N) * tik(1:N, end) <= k_soe + tau_soe;
 
 %% Cost function definition
 
@@ -129,7 +127,7 @@ end
 
 %% Constraining the real-valued variables
 
-constraint_real = [ones(N,1)*(-20) <= pmus <= ones(N,1)*1, ...
+constraint_real = [ones(N,1)*(-20) <= pmus, pmus <= ones(N,1)*1, ...
     0 <= resistance, resistance <= 0.1, 0.005 <= elastance, elastance <= 1];
     %0 <= resistance, resistance <= 0.1, 0.030 <= elastance, elastance <= 1];
 

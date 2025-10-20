@@ -73,12 +73,12 @@ constraints = [constraints, a1 <= -1e-6];
 constraints = [constraints, a2 >= 1e-6];
 constraints = [constraints, a3 <= -1e-6];
 
-constraints = [constraints, opts.R_bounds(1) <= R <= opts.R_bounds(2)];
-constraints = [constraints, opts.E_bounds(1) <= E <= opts.E_bounds(2)];
+constraints = [constraints, opts.R_bounds(1) <= R, R <= opts.R_bounds(2)];
+constraints = [constraints, opts.E_bounds(1) <= E, E <= opts.E_bounds(2)];
 
 pmin = opts.pmus_bounds(1);
 pmax = opts.pmus_bounds(2);
-constraints = [constraints, pmin <= pmus_all(idx_effort) <= pmax];
+constraints = [constraints, pmin <= pmus_all(idx_effort), pmus_all(idx_effort) <= pmax];
 
 % model predicted paw
 paw_model = pmus_all + R*flow + E*volume;
