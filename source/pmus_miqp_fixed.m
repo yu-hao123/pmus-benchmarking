@@ -131,7 +131,7 @@ params_lse = (([flow volume]'*[flow volume]) \ ([flow volume]')) * (paw - pmus_t
 params_true.resistance = params_lse(1)*1000;
 params_true.elastance  = params_lse(2)*1000;
 
-params_fixed.resistance = R_fixed*1000; % scale to cmH2O/(L·s)
+params_fixed.resistance = R_fixed*1000;
 params_fixed.elastance  = E_fixed*1000;
 
 switching_times = zeros(Ns,1);

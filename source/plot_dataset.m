@@ -9,7 +9,7 @@ arguments
     ins_marks = []
     exp_marks = []
     options.LastPlot {mustBeMember(options.LastPlot, ["vol", "pmus"])} = "pmus"
-    options.Position = [70 170 720 720]
+    options.Position = [60 60 720 720]
 end
 
 time = acq_table.time;

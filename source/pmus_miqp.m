@@ -117,7 +117,7 @@ constraint_exhalation = [(1:N) * tik(1:N, end) <= k_soe + tau_soe];
 
 %% Cost function definition
 
-resistance = sdpvar(1, 1); % cmH2O / (mL * s) (usual unit is cmH2O / (L * s))
+resistance = sdpvar(1, 1); % (cmH2O * s) / mL (usual unit is (cmH2O * s) / L)
 elastance = sdpvar(1, 1); % cmH2O / mL
 
 cost = (paw - (pmus + resistance * flow + volume * elastance))' * ...

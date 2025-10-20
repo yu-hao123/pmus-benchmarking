@@ -64,7 +64,7 @@ objective = res' * res;  % least-squares
 if strcmpi(opts.solver,'gurobi')
     options = sdpsettings('solver','gurobi', ...
                           'verbose', 0, ...
-                          'gurobi.TimeLimit', 1200, ...
+                          'gurobi.TimeLimit', 60, ...
                           'gurobi.OutputFlag', 0);
 else
     options = sdpsettings('solver','quadprog', 'verbose', 0);
@@ -111,13 +111,9 @@ waveforms_hat.pmus = pmus_hat;
 waveforms_hat.paw  = pmus_hat + R_hat*flow + E_hat*volume;
 
 % params_true computed by LSE on true pmus if available
-if isfield(waveforms,'pmus')
-    params_lse = (([flow volume]' * [flow volume]) \ ([flow volume]')) * (paw - waveforms.pmus);
-    params_true.resistance = params_lse(1) * 1000;
-    params_true.elastance  = params_lse(2) * 1000;
-else
-    params_true = struct();
-end
+params_lse = (([flow volume]' * [flow volume]) \ ([flow volume]')) * (paw - waveforms.pmus);
+params_true.resistance = params_lse(1) * 1000;
+params_true.elastance  = params_lse(2) * 1000;
 
 params_fixed.resistance = R_hat * 1000;
 params_fixed.elastance  = E_hat * 1000;
