@@ -2,7 +2,8 @@ clc;
 clear all;
 close all;
 
-addpath('source');
+addpath("source");
+addpath("utils");
 
 % run set_gurobi.m
 % run set_yalmip.m
@@ -44,7 +45,7 @@ insexp = ones(length(waveforms.paw), 1);
 insexp(exp_start:end) = 0;
 waveforms.insexp = insexp;
 
-[f, t, linkplot] = plot_dataset(interval_table);
+plot_dataset(interval_table);
 
 %% build parametric optimizer once
 miqp_optimizer = build_pmus_miqp_optimizer(waveforms, false, true, 0, 1e-3);
@@ -111,7 +112,7 @@ pmus_candidate = waveforms.pressure ...
             - best_R * waveforms.flow / 60 ...
             - waveforms.volume / best_C;
 paw_est = waveforms_hat.paw;
-[f, t, linkplot] = plot_dataset(waveforms);
+[~, ~, linkplot] = plot_dataset(waveforms);
 plot(linkplot(3), waveforms.time - waveforms.time(1), pmus_optimized);
 %plot(linkplot(3), waveforms.time - waveforms.time(1), pmus_candidate);
 plot(linkplot(1), waveforms.time - waveforms.time(1), paw_est);
@@ -122,11 +123,11 @@ fprintf("\ncost best (R = %.2f, C = %.2f): %.2f\n", best_R, best_C, best_error);
 
 true_R = params_true.resistance;
 true_C = 1000/params_true.elastance;
-[~, true_waveforms_hat, params_true, ~, ~, ~] = ...
+[~, true_waveforms_hat, ~, ~, ~, ~] = ...
             pmus_miqp_fixed(waveforms, false, true, 0, 1e-3, true_R/1000, 1/true_C);
 fprintf("cost true (R = %.2f, C = %.2f): %.2f\n", ...
     true_R, true_C, norm(true_waveforms_hat.paw - waveforms.paw));
-[f, t, linkplot] = plot_dataset(waveforms);
+[~, ~, linkplot] = plot_dataset(waveforms);
 plot(linkplot(3), waveforms.time - waveforms.time(1), true_waveforms_hat.pmus);
 %plot(linkplot(3), waveforms.time - waveforms.time(1), pmus_candidate);
 plot(linkplot(1), waveforms.time - waveforms.time(1), true_waveforms_hat.paw);

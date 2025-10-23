@@ -110,7 +110,7 @@ end
 
 %% Constraining the exhalation switching instant
 
-tau_soe = 50;
+tau_soe = 25;
 constraint_exhalation = (1:N) * tik(1:N, end) <= k_soe + tau_soe;
 
 %% Cost function definition

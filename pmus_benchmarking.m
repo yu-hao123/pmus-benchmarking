@@ -2,6 +2,7 @@ clear all;
 %close all;
 
 addpath('source');
+addpath('utils');
 
 %run set_gurobi.m
 %run set_yalmip.m
@@ -21,11 +22,11 @@ pmus_estimate = acq_table.pmus_estimate; % PMUS-MAG-IA
 fprintf("retrieved %d ins/exp marks from volume parity bit\n", length(ins_marks));
 
 %%
-offset = 50;
-%start_idx = 8099;
-%finish_idx = 8100;
-start_idx = 8002;
-finish_idx = 8002;
+offset = 30;
+start_idx = 8099;
+finish_idx = 8100;
+%start_idx = 8002;
+%finish_idx = 8002;
 %start_idx = 15171;
 %finish_idx = 15175;
 
@@ -39,13 +40,13 @@ params_true = table();
 params_hat = table();
 cost_hat = [];
 
-estimator = "cubic";
+estimator = "miqp";
 
 % estimate multiple sequential cycles
 for i=start_idx:finish_idx
     fprintf(" optimizing cycle of idx: %d \n", i);
 
-    cycle = extract_cycle(acq_table, ins_marks(i), ins_marks(i + 1), exp_marks(i), peep);
+    cycle = extract_single_cycle(acq_table, ins_marks(i), ins_marks(i + 1), exp_marks(i), peep);
     if (estimator == "miqp")
         [cycle_true, cycle_hat, cycle_params_true, cycle_params_hat] = pmus_miqp(cycle, false, true, 0);
     else
@@ -85,7 +86,7 @@ plot(linkplot(3), waveforms.time - waveforms.time(1), pmus_optimized);
 plot(linkplot(1), waveforms.time - waveforms.time(1), paw_est);
 legend(linkplot(1), "paw ASL", "paw est");
 
-plot(linkplot(3), waveforms.time - waveforms.time(1), waveforms.pmus_mag);
+%plot(linkplot(3), waveforms.time - waveforms.time(1), waveforms.pmus_mag);
 %plot(linkplot(3), waveforms.time - waveforms.time(1), waveforms.pmus_recalculated);
 plot(linkplot(3), waveforms.time - waveforms.time(1), waveforms.insexp);
 legend("pmus ASL", "pmus " + estimator, "pmus MAG-IA", "expiration switch");
@@ -110,41 +111,4 @@ function J = cost(resistance, elastance, paw, flow, volume, pmus)
     flow = flow * 1000 / 60;
     paw_hat = pmus + resistance .* flow + (volume * elastance);
     J = norm(paw - paw_hat);
-end
-
-function waveforms = extract_cycle(acq_table, ins_mark, next_ins_mark, exp_mark, peep, offset)
-arguments
-    acq_table
-    ins_mark
-    next_ins_mark
-    exp_mark
-    peep
-    offset = 50
-end
-
-interval = (ins_mark-offset):(next_ins_mark-offset-1);
-interval_table = acq_table(interval, :);
-interval_table.pmus = interval_table.pmus;
-interval_table.flow = fir_filter(8, 0.2, 100, interval_table.flow);
-interval_table.pressure = fir_filter(8, 0.2, 100, interval_table.pressure);
-interval_table.volume = fir_filter(8, 0.2, 100, interval_table.volume);
-
-exp_start = exp_mark - ins_mark + offset;
-
-waveforms = table();
-waveforms.time = interval_table.time;
-waveforms.paw = interval_table.pressure - peep;
-waveforms.pressure = waveforms.paw; % not ideal
-waveforms.flow = interval_table.flow;
-waveforms.volume = interval_table.volume;
-waveforms.pmus = interval_table.pmus;
-waveforms.pmus_mag = interval_table.pmus_estimate;
-insexp = ones(length(waveforms.paw), 1);
-for i=1:length(waveforms.paw)
-    if i >= exp_start
-        insexp(i) = 0;
-    end
-end
-waveforms.insexp = insexp;
-
 end
