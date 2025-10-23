@@ -54,7 +54,7 @@ constraints = [constraints, a3 <= -1e-6];
 % pmus bounds inside effort
 pmin = opts.pmus_bounds(1);
 pmax = opts.pmus_bounds(2);
-constraints = [constraints, pmin <= pmus_all(idx_effort) <= pmax];
+constraints = [constraints, pmin <= pmus_all(idx_effort), pmus_all(idx_effort) <= pmax];
 
 R = R_fixed; E = E_fixed;
 paw_model = pmus_all + R*flow + E*volume;
